@@ -4,7 +4,10 @@ public enum ErrorMessages {
 
     ERRO_CAMPO_NAO_INFORMADO(new Erro(1, "Campo obrigatório não foi informado")),
     ERRO_CAMPO_NAO_EXISTE(new Erro(2, "Campo informado não existe")),
+    ERRO_DUPLICADO(new Erro(3, "Parceiro já cadastrado")),
+    ERRO_RETORNO_API_VAZIO(new Erro(4, "Sem retorno de api parceira")),
     ERRO_SERVER(new Erro(90, "Erro no servidor/Serviço Indisponível. Favor contactar o administrador"));
+
 
     private final Erro erro;
 

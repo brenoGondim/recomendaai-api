@@ -12,7 +12,7 @@
     <artifactId>recomenda-ai</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>recomenda-ai</name>
-    <description>Demo project for Spring Boot</description>
+    <description>API Recomenda Ai - Tribanco</description>
 
     <properties>
         <java.version>11</java.version>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
+            <version>42.2.14</version>
         </dependency>
         <!--HIBERNATE-->
         <dependency>
@@ -92,6 +92,18 @@
             <artifactId>lombok</artifactId>
             <version>1.18.12</version>
             <scope>provided</scope>
+        </dependency>
+        <!--JWT-->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.9.1</version>
+        </dependency>
+        <!--oAuth2-->
+        <dependency>
+            <groupId>org.springframework.security.oauth</groupId>
+            <artifactId>spring-security-oauth2</artifactId>
+            <version>2.0.2.RELEASE</version>
         </dependency>
     </dependencies>
 

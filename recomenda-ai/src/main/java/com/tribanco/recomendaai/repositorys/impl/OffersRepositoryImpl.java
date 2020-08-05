@@ -1,12 +1,8 @@
 package com.tribanco.recomendaai.repositorys.impl;
 
-import com.tribanco.recomendaai.models.ApiReturnsDTO;
-import com.tribanco.recomendaai.models.requests.partner.PartnerBodyRequest;
-import com.tribanco.recomendaai.models.responses.bluAPI.BluAPIResponse;
-import org.springframework.stereotype.Repository;
+import com.tribanco.recomendaai.repositorys.query.OffersRepositoryQuery;
 
-@Repository
-public class OffersRepositoryImpl {
 
+public class OffersRepositoryImpl implements OffersRepositoryQuery {
 
 }
