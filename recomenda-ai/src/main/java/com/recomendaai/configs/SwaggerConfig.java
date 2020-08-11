@@ -1,4 +1,4 @@
-package com.recomendaai.configs.documentation;
+package com.recomendaai.configs;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

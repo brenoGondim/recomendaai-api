@@ -1,4 +1,4 @@
-package com.recomendaai.configs.auth.teste2;
+package com.recomendaai.configs.auth2;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

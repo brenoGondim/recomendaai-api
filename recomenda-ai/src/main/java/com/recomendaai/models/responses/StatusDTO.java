@@ -19,8 +19,8 @@ import javax.persistence.Table;
 public class StatusDTO {
 
     @Id
-    @Column(name="partner_id")
-    private String partnerId;
+    @Column(name="ticket_id")
+    private String ticketId;
 
     @Column(name="description")
     private String description;

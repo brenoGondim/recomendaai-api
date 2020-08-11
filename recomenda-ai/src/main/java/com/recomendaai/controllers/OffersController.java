@@ -7,9 +7,11 @@ import com.recomendaai.exceptions.customExceptions.EmptyResponseApiException;
 import com.recomendaai.exceptions.customExceptions.EmptyResponseException;
 import com.recomendaai.models.requests.partner.PartnerBodyRequest;
 import com.recomendaai.models.responses.SignalResponse;
+import com.recomendaai.models.responses.offer.ResultOffer;
 import com.recomendaai.services.OffersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,14 +42,12 @@ public class OffersController {
 
 
     @GetMapping("/offers/{partnerId}")
-    public CompletableFuture<ResponseEntity<List<OfferResponseDTO>>> getOffer(@PathVariable String partnerId, @RequestHeader("x-api-key") String key, @RequestParam(name = "ticketId") String ticketId,
+    public ResponseEntity<Page<ResultOffer>> getOffer(@PathVariable String partnerId, @RequestHeader("x-api-key") String key, @RequestParam(name = "ticketId") String ticketId,
                                                                               @RequestParam(name = "offerType", required = false) String offerType, Pageable pageable) throws JsonProcessingException, EmptyResponseException, TicketNotDoneException {
 
-        CompletableFuture<List<OfferResponseDTO>> offerResponse = offersService.getOffer(partnerId, key, ticketId, offerType, pageable);
+        Page<ResultOffer> offerResponse = offersService.getOffer(partnerId, key, ticketId, offerType, pageable);
 
 
-        return offerResponse.thenApplyAsync(ResponseEntity::ok);
-
-        //return ResponseEntity.ok(offerResponse);
+        return ResponseEntity.ok(offerResponse);
     }
 }

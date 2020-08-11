@@ -1,4 +1,4 @@
-package com.recomendaai.configs.auth.teste2;
+package com.recomendaai.configs.auth2;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,20 +13,19 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
 @Configuration
 @EnableAuthorizationServer
 public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
 
-    PasswordEncoder passwordEncoder;
-    AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
     @Value("${user.oauth.clientId}")
     private String ClientID;
     @Value("${user.oauth.clientSecret}")
     private String ClientSecret;
-    @Value("${user.oauth.redirectUris}")
-    private String RedirectURLs;
 
     @Autowired
     public AuthServerConfig(PasswordEncoder passwordEncoder, AuthenticationConfiguration authenticationConfiguration) throws Exception {
@@ -49,21 +48,27 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
                 .secret(passwordEncoder.encode(ClientSecret))
                 .authorizedGrantTypes("password")
                 .accessTokenValiditySeconds(1800)
-                .scopes("read","write")
-                .autoApprove(true)
-                .redirectUris(RedirectURLs);
+                .scopes("read", "write")
+                .autoApprove(true);
     }
 
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
         endpoints.tokenStore(getTokenStore())
-                //.accessTokenConverter(accessTokenConverter())
+                .accessTokenConverter(accessTokenConverter())
                 .authenticationManager(authenticationManager);
 
     }
 
     @Bean
-    TokenStore getTokenStore() {
-        return new InMemoryTokenStore();
+    public JwtAccessTokenConverter accessTokenConverter() {
+        JwtAccessTokenConverter accessTokenConverter = new JwtAccessTokenConverter();
+        accessTokenConverter.setSigningKey("recomendaai");
+        return accessTokenConverter;
+    }
+
+    @Bean
+    public TokenStore getTokenStore() {
+        return new JwtTokenStore(accessTokenConverter());
     }
 }

@@ -21,8 +21,8 @@ import javax.persistence.*;
 public class ApiReturnsDTO {
 
     @Id
-    @Column(name="partner_id")
-    private String partnerId;
+    @Column(name="ticket_id")
+    private String ticketId;
 
     @Column(name="name")
     private String name;

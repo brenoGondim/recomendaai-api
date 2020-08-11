@@ -7,38 +7,31 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
 
 @Component
-public class BluAPI {
+public class GenericAPI {
 
     private final RestTemplate restTemplate;
     @Autowired
-    public BluAPI(RestTemplate restTemplate){ this.restTemplate = restTemplate; }
+    public GenericAPI(RestTemplate restTemplate){ this.restTemplate = restTemplate; }
 
-    @Value("${api.blu.urlBase}")
-    private String urlBlu;
-
-
-    public BluAPIResponse getBluAPI(String documentId, String key) throws EmptyResponseApiException {
-        final String url = urlBlu + documentId;
+    public Object getAPI(String documentId, String key, String apiUrl) throws EmptyResponseApiException {
+        final String url = apiUrl + documentId;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("x-api-key", key);
 
-        Optional<BluAPIResponse> bluAPIResponse = Optional.ofNullable(restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), BluAPIResponse.class).getBody());
+        Optional<Object> response = Optional.ofNullable(restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), Object.class).getBody());
 
-        if (bluAPIResponse.isPresent() && bluAPIResponse.get().getData().isEmpty()) {
+        if (response.isEmpty()) {
             throw new EmptyResponseApiException();                                        //ERRO: "Sem retorno de api parceira"
         }
 
-        return bluAPIResponse.orElse(new BluAPIResponse());
+        return response.orElse(new Object());
     }
 }

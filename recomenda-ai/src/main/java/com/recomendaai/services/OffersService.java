@@ -2,6 +2,7 @@ package com.recomendaai.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.recomendaai.apis.GenericAPI;
 import com.recomendaai.exceptions.customExceptions.EmptyResponseException;
 import com.recomendaai.exceptions.customExceptions.TicketNotDoneException;
 import com.recomendaai.models.responses.StatusDTO;
@@ -48,14 +49,16 @@ public class OffersService {
     private String urlBlu;
     private final ObjectMapper mapper = new ObjectMapper();
     private final BluAPI bluAPI;
+    private final GenericAPI genericAPI;
     private final ApisRepository apisRepository;
     private final OffersRepository offersRepository;
     private final StatusRepository statusRepository;
     Logger log = LoggerFactory.getLogger(OffersService.class);
 
     @Autowired
-    public OffersService(BluAPI bluAPI, ApisRepository apisRepository, OffersRepository offersRepository, StatusRepository statusRepository) {
+    public OffersService(BluAPI bluAPI, GenericAPI genericAPI, ApisRepository apisRepository, OffersRepository offersRepository, StatusRepository statusRepository) {
         this.bluAPI = bluAPI;
+        this.genericAPI = genericAPI;
         this.apisRepository = apisRepository;
         this.offersRepository = offersRepository;
         this.statusRepository = statusRepository;
@@ -64,72 +67,84 @@ public class OffersService {
     @Async
     public void saveBluAPI(String partnerId, String key, PartnerBodyRequest partnerBodyRequest, String ticketId) throws JsonProcessingException, EmptyResponseApiException, InterruptedException {
 
-        statusRepository.save(new StatusDTO(partnerId, "PROCESSANDO"));
+        statusRepository.save(new StatusDTO(ticketId, "PROCESSANDO"));
         log.info("PROCESSANDO POST by " + Thread.currentThread().getName());
 
         String documentId = partnerBodyRequest.getPayload().getPerson().getDocumentId();
-        BluAPIResponse bluData = bluAPI.getBluAPI(documentId, key);
+        BluAPIResponse apiResponse = bluAPI.getBluAPI(documentId, key);
+
+        //BluAPIResponse apiResponse = (BluAPIResponse) genericAPI.getAPI(documentId, key, partnerBodyRequest.getCallbackUrl());
 
         String jsonStrPartnerBodyRequest = mapper.writeValueAsString(partnerBodyRequest);
-        String jsonStrBluData = mapper.writeValueAsString(bluData);
+        String jsonStrBluData = mapper.writeValueAsString(apiResponse);
 
-        ApiReturnsDTO apiBluResponse = new ApiReturnsDTO(documentId, "API Blu365", urlBlu + partnerId, jsonStrPartnerBodyRequest, jsonStrBluData);
+        ApiReturnsDTO apiBluResponse = new ApiReturnsDTO(ticketId, "API Blu365", urlBlu + partnerId, jsonStrPartnerBodyRequest, jsonStrBluData);
         apisRepository.save(apiBluResponse);
         Thread.sleep(10000);
-        OfferResponse offerResponse = mountBluOfferResponse(partnerId, ticketId, partnerBodyRequest, bluData);
+        OfferResponse offerResponse = mountBluOfferResponse(partnerId, ticketId, partnerBodyRequest, apiResponse);
         String jsonStrOfferResponse = mapper.writeValueAsString(offerResponse);
 
-        OfferResponseDTO offerResponseDTO = new OfferResponseDTO(partnerId, jsonStrOfferResponse);
+        OfferResponseDTO offerResponseDTO = new OfferResponseDTO(partnerId, ticketId, documentId, jsonStrOfferResponse);
 
 //        Optional<offerResponseDTO> result = offersRepository.findById(partnerId);
 //        result.ifPresent(r -> { throw new IllegalArgumentException(); });                               //ERRO: "Parceiro já cadastrado"
 
         offersRepository.save(offerResponseDTO);
         log.info("FINALIZADO POST by " + Thread.currentThread().getName());
-        statusRepository.save(new StatusDTO(partnerId, "FINALIZADO"));
+        statusRepository.save(new StatusDTO(ticketId, "FINALIZADO"));
     }
 
-    private OfferResponse mountBluOfferResponse(String partnerId, String ticketId, PartnerBodyRequest partnerBodyRequest, BluAPIResponse apiReturn){
+
+    private OfferResponse mountBluOfferResponse(String partnerId, String ticketId, PartnerBodyRequest partnerBodyRequest, BluAPIResponse apiResponse){
 
         List<ResultOffer> results = new ArrayList<>();
         String source = "blu365";
         String title = "Que tal renegociar as dividas com 95% de desconto?";
         String description = "Em nosso parceiro '" + partnerBodyRequest.getPayload().getCompany().getName() + "' você encontra a melhor oferta";
 
-        apiReturn.getData().forEach(data -> results.add(new ResultOffer(partnerId, ticketId, "", source, title, description,"", 0L, null, new Extra(data.getCredor(),
+        apiResponse.getData().forEach(data -> results.add(new ResultOffer(partnerId, ticketId, "", source, title, description,"", 0L, null, new Extra(data.getCredor(),
                                                                         data.getUrl(), data.getDocumento(), data.getProduto(), data.getCarteira(), data.getContrato()))));
         return new OfferResponse(results);
     }
 
 
 
-    @Async
-    public CompletableFuture<List<OfferResponseDTO>> getOffer(String partnerId, String key, String ticketId, String offerType, Pageable pageable) throws JsonProcessingException, EmptyResponseException, TicketNotDoneException {
+    public Page<ResultOffer> getOffer(String partnerId, String key, String ticketId, String offerType, Pageable pageable) throws JsonProcessingException, EmptyResponseException, TicketNotDoneException {
 
         log.info(Thread.getAllStackTraces().keySet() + "PROCESSANDO GET list by " + Thread.currentThread().getName());
-        Optional<StatusDTO> status = statusRepository.findById(partnerId);
+
+        verifyStatus(ticketId);
+        OfferResponse offerResponse = getOfferResponse(ticketId);
+
+        log.info("FINALIZADO GET list by " + Thread.currentThread().getName());
+
+        return pageadOffer(offerResponse, pageable);
+    }
+
+
+    private void verifyStatus(String ticketId) throws TicketNotDoneException {
+
+        Optional<StatusDTO> status = statusRepository.findById(ticketId);
 
         if (status.isPresent() && "PROCESSANDO".equals(status.get().getDescription())){
             throw new TicketNotDoneException();                                       //ERRO: "O ticket ainda está em processamento. Favor aguardar..."
         }
+    }
 
-        Optional<OfferResponseDTO> offerResponseDTO = offersRepository.findById(partnerId);
+    private OfferResponse getOfferResponse(String ticketId) throws EmptyResponseException, JsonProcessingException {
 
-        List<OfferResponseDTO> listOfferResponseDTO = offersRepository.findAll();
+        Optional<OfferResponseDTO> offerResponseDTO = offersRepository.findById(ticketId);
 
         OfferResponse offerResponse = new OfferResponse();
 
         if (offerResponseDTO.isEmpty() || offerResponseDTO.get().getResponseJson().isEmpty()) {
             throw new EmptyResponseException();                                        //ERRO: "Processamento finalizado. Não foram encontrados registros"
         }
-        else if(!offerResponseDTO.isEmpty() && !offerResponseDTO.get().getResponseJson().isEmpty()){
+        else if(!offerResponseDTO.get().getResponseJson().isEmpty()){
             offerResponse = mapper.readValue(offerResponseDTO.get().getResponseJson(), OfferResponse.class);
         }
-
-        log.info("FINALIZADO GET list by " + Thread.currentThread().getName());
-        return CompletableFuture.completedFuture(listOfferResponseDTO);
+        return offerResponse;
     }
-
 
     public Page<ResultOffer> pageadOffer(OfferResponse offerResponse, Pageable pageable) throws EmptyResponseException {
 
